@@ -12,8 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" Testing suite for the PyTorch RemBERT model. """
-
+"""Testing suite for the PyTorch RemBERT model."""
 
 import unittest
 
@@ -38,7 +37,6 @@ if is_torch_available():
         RemBertForTokenClassification,
         RemBertModel,
     )
-    from transformers.models.rembert.modeling_rembert import REMBERT_PRETRAINED_MODEL_ARCHIVE_LIST
 
 
 class RemBertModelTester:
@@ -375,7 +373,6 @@ class RemBertModelTest(ModelTesterMixin, PipelineTesterMixin, unittest.TestCase)
         if is_torch_available()
         else ()
     )
-    all_generative_model_classes = (RemBertForCausalLM,) if is_torch_available() else ()
     pipeline_model_mapping = (
         {
             "feature-extraction": RemBertModel,
@@ -465,9 +462,9 @@ class RemBertModelTest(ModelTesterMixin, PipelineTesterMixin, unittest.TestCase)
 
     @slow
     def test_model_from_pretrained(self):
-        for model_name in REMBERT_PRETRAINED_MODEL_ARCHIVE_LIST[:1]:
-            model = RemBertModel.from_pretrained(model_name)
-            self.assertIsNotNone(model)
+        model_name = "google/rembert"
+        model = RemBertModel.from_pretrained(model_name)
+        self.assertIsNotNone(model)
 
 
 @require_torch
@@ -509,4 +506,6 @@ class RemBertModelIntegrationTest(unittest.TestCase):
         #     [-0.15887849032878876, -0.054529931396245956, 0.5356100797653198]
         # ]]
 
-        self.assertTrue(torch.allclose(output["last_hidden_state"][:, :, :3], expected_implementation, atol=1e-4))
+        torch.testing.assert_close(
+            output["last_hidden_state"][:, :, :3], expected_implementation, rtol=1e-4, atol=1e-4
+        )

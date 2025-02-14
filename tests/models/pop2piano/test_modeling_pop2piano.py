@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" Testing suite for the PyTorch Pop2Piano model. """
+"""Testing suite for the PyTorch Pop2Piano model."""
 
 import copy
 import tempfile
@@ -44,7 +44,6 @@ if is_torch_available():
     import torch
 
     from transformers import Pop2PianoForConditionalGeneration
-    from transformers.models.pop2piano.modeling_pop2piano import POP2PIANO_PRETRAINED_MODEL_ARCHIVE_LIST
 
 
 @require_torch
@@ -508,6 +507,7 @@ class Pop2PianoModelTester:
 @require_torch
 class Pop2PianoModelTest(ModelTesterMixin, GenerationTesterMixin, PipelineTesterMixin, unittest.TestCase):
     all_model_classes = (Pop2PianoForConditionalGeneration,) if is_torch_available() else ()
+    # Doesn't run generation tests. Has custom generation method with a different interface
     all_generative_model_classes = ()
     pipeline_model_mapping = (
         {"automatic-speech-recognition": Pop2PianoForConditionalGeneration} if is_torch_available() else {}
@@ -607,9 +607,9 @@ class Pop2PianoModelTest(ModelTesterMixin, GenerationTesterMixin, PipelineTester
 
     @slow
     def test_model_from_pretrained(self):
-        for model_name in POP2PIANO_PRETRAINED_MODEL_ARCHIVE_LIST[:1]:
-            model = Pop2PianoForConditionalGeneration.from_pretrained(model_name)
-            self.assertIsNotNone(model)
+        model_name = "sweetcocoa/pop2piano"
+        model = Pop2PianoForConditionalGeneration.from_pretrained(model_name)
+        self.assertIsNotNone(model)
 
     @require_onnx
     def test_export_to_onnx(self):
@@ -621,7 +621,7 @@ class Pop2PianoModelTest(ModelTesterMixin, GenerationTesterMixin, PipelineTester
                 (config_and_inputs[1], config_and_inputs[3], config_and_inputs[2]),
                 f"{tmpdirname}/Pop2Piano_test.onnx",
                 export_params=True,
-                opset_version=9,
+                opset_version=14,
                 input_names=["input_ids", "decoder_input_ids"],
             )
 
@@ -692,7 +692,7 @@ class Pop2PianoModelIntegrationTests(unittest.TestCase):
             [[1.0475305318832397, 0.29052114486694336, -0.47778210043907166], [1.0, 1.0, 1.0], [1.0, 1.0, 1.0]]
         )
 
-        self.assertTrue(torch.allclose(outputs[0, :3, :3], EXPECTED_OUTPUTS, atol=1e-4))
+        torch.testing.assert_close(outputs[0, :3, :3], EXPECTED_OUTPUTS, rtol=1e-4, atol=1e-4)
 
     @slow
     @require_essentia

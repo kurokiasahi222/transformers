@@ -9,7 +9,21 @@ class ImageProcessingMixin(metaclass=DummyObject):
         requires_backends(self, ["vision"])
 
 
+class BaseImageProcessor(metaclass=DummyObject):
+    _backends = ["vision"]
+
+    def __init__(self, *args, **kwargs):
+        requires_backends(self, ["vision"])
+
+
 class ImageFeatureExtractionMixin(metaclass=DummyObject):
+    _backends = ["vision"]
+
+    def __init__(self, *args, **kwargs):
+        requires_backends(self, ["vision"])
+
+
+class AriaImageProcessor(metaclass=DummyObject):
     _backends = ["vision"]
 
     def __init__(self, *args, **kwargs):
@@ -45,6 +59,13 @@ class BlipImageProcessor(metaclass=DummyObject):
 
 
 class BridgeTowerImageProcessor(metaclass=DummyObject):
+    _backends = ["vision"]
+
+    def __init__(self, *args, **kwargs):
+        requires_backends(self, ["vision"])
+
+
+class ChameleonImageProcessor(metaclass=DummyObject):
     _backends = ["vision"]
 
     def __init__(self, *args, **kwargs):
@@ -142,6 +163,41 @@ class DetaImageProcessor(metaclass=DummyObject):
         requires_backends(self, ["vision"])
 
 
+class EfficientFormerImageProcessor(metaclass=DummyObject):
+    _backends = ["vision"]
+
+    def __init__(self, *args, **kwargs):
+        requires_backends(self, ["vision"])
+
+
+class TvltImageProcessor(metaclass=DummyObject):
+    _backends = ["vision"]
+
+    def __init__(self, *args, **kwargs):
+        requires_backends(self, ["vision"])
+
+
+class ViTHybridImageProcessor(metaclass=DummyObject):
+    _backends = ["vision"]
+
+    def __init__(self, *args, **kwargs):
+        requires_backends(self, ["vision"])
+
+
+class DepthProImageProcessor(metaclass=DummyObject):
+    _backends = ["vision"]
+
+    def __init__(self, *args, **kwargs):
+        requires_backends(self, ["vision"])
+
+
+class DepthProImageProcessorFast(metaclass=DummyObject):
+    _backends = ["vision"]
+
+    def __init__(self, *args, **kwargs):
+        requires_backends(self, ["vision"])
+
+
 class DetrFeatureExtractor(metaclass=DummyObject):
     _backends = ["vision"]
 
@@ -184,14 +240,14 @@ class DPTImageProcessor(metaclass=DummyObject):
         requires_backends(self, ["vision"])
 
 
-class EfficientFormerImageProcessor(metaclass=DummyObject):
+class EfficientNetImageProcessor(metaclass=DummyObject):
     _backends = ["vision"]
 
     def __init__(self, *args, **kwargs):
         requires_backends(self, ["vision"])
 
 
-class EfficientNetImageProcessor(metaclass=DummyObject):
+class Emu3ImageProcessor(metaclass=DummyObject):
     _backends = ["vision"]
 
     def __init__(self, *args, **kwargs):
@@ -247,7 +303,35 @@ class GLPNImageProcessor(metaclass=DummyObject):
         requires_backends(self, ["vision"])
 
 
+class GotOcr2ImageProcessor(metaclass=DummyObject):
+    _backends = ["vision"]
+
+    def __init__(self, *args, **kwargs):
+        requires_backends(self, ["vision"])
+
+
+class GroundingDinoImageProcessor(metaclass=DummyObject):
+    _backends = ["vision"]
+
+    def __init__(self, *args, **kwargs):
+        requires_backends(self, ["vision"])
+
+
 class IdeficsImageProcessor(metaclass=DummyObject):
+    _backends = ["vision"]
+
+    def __init__(self, *args, **kwargs):
+        requires_backends(self, ["vision"])
+
+
+class Idefics2ImageProcessor(metaclass=DummyObject):
+    _backends = ["vision"]
+
+    def __init__(self, *args, **kwargs):
+        requires_backends(self, ["vision"])
+
+
+class Idefics3ImageProcessor(metaclass=DummyObject):
     _backends = ["vision"]
 
     def __init__(self, *args, **kwargs):
@@ -262,6 +346,13 @@ class ImageGPTFeatureExtractor(metaclass=DummyObject):
 
 
 class ImageGPTImageProcessor(metaclass=DummyObject):
+    _backends = ["vision"]
+
+    def __init__(self, *args, **kwargs):
+        requires_backends(self, ["vision"])
+
+
+class InstructBlipVideoImageProcessor(metaclass=DummyObject):
     _backends = ["vision"]
 
     def __init__(self, *args, **kwargs):
@@ -310,7 +401,35 @@ class LevitImageProcessor(metaclass=DummyObject):
         requires_backends(self, ["vision"])
 
 
+class LlavaImageProcessor(metaclass=DummyObject):
+    _backends = ["vision"]
+
+    def __init__(self, *args, **kwargs):
+        requires_backends(self, ["vision"])
+
+
 class LlavaNextImageProcessor(metaclass=DummyObject):
+    _backends = ["vision"]
+
+    def __init__(self, *args, **kwargs):
+        requires_backends(self, ["vision"])
+
+
+class LlavaNextVideoImageProcessor(metaclass=DummyObject):
+    _backends = ["vision"]
+
+    def __init__(self, *args, **kwargs):
+        requires_backends(self, ["vision"])
+
+
+class LlavaOnevisionImageProcessor(metaclass=DummyObject):
+    _backends = ["vision"]
+
+    def __init__(self, *args, **kwargs):
+        requires_backends(self, ["vision"])
+
+
+class LlavaOnevisionVideoProcessor(metaclass=DummyObject):
     _backends = ["vision"]
 
     def __init__(self, *args, **kwargs):
@@ -332,6 +451,13 @@ class MaskFormerFeatureExtractor(metaclass=DummyObject):
 
 
 class MaskFormerImageProcessor(metaclass=DummyObject):
+    _backends = ["vision"]
+
+    def __init__(self, *args, **kwargs):
+        requires_backends(self, ["vision"])
+
+
+class MllamaImageProcessor(metaclass=DummyObject):
     _backends = ["vision"]
 
     def __init__(self, *args, **kwargs):
@@ -436,6 +562,13 @@ class Pix2StructImageProcessor(metaclass=DummyObject):
         requires_backends(self, ["vision"])
 
 
+class PixtralImageProcessor(metaclass=DummyObject):
+    _backends = ["vision"]
+
+    def __init__(self, *args, **kwargs):
+        requires_backends(self, ["vision"])
+
+
 class PoolFormerFeatureExtractor(metaclass=DummyObject):
     _backends = ["vision"]
 
@@ -451,6 +584,20 @@ class PoolFormerImageProcessor(metaclass=DummyObject):
 
 
 class PvtImageProcessor(metaclass=DummyObject):
+    _backends = ["vision"]
+
+    def __init__(self, *args, **kwargs):
+        requires_backends(self, ["vision"])
+
+
+class Qwen2VLImageProcessor(metaclass=DummyObject):
+    _backends = ["vision"]
+
+    def __init__(self, *args, **kwargs):
+        requires_backends(self, ["vision"])
+
+
+class RTDetrImageProcessor(metaclass=DummyObject):
     _backends = ["vision"]
 
     def __init__(self, *args, **kwargs):
@@ -492,6 +639,13 @@ class SiglipImageProcessor(metaclass=DummyObject):
         requires_backends(self, ["vision"])
 
 
+class SuperGlueImageProcessor(metaclass=DummyObject):
+    _backends = ["vision"]
+
+    def __init__(self, *args, **kwargs):
+        requires_backends(self, ["vision"])
+
+
 class SuperPointImageProcessor(metaclass=DummyObject):
     _backends = ["vision"]
 
@@ -506,7 +660,7 @@ class Swin2SRImageProcessor(metaclass=DummyObject):
         requires_backends(self, ["vision"])
 
 
-class TvltImageProcessor(metaclass=DummyObject):
+class TextNetImageProcessor(metaclass=DummyObject):
     _backends = ["vision"]
 
     def __init__(self, *args, **kwargs):
@@ -514,6 +668,13 @@ class TvltImageProcessor(metaclass=DummyObject):
 
 
 class TvpImageProcessor(metaclass=DummyObject):
+    _backends = ["vision"]
+
+    def __init__(self, *args, **kwargs):
+        requires_backends(self, ["vision"])
+
+
+class VideoLlavaImageProcessor(metaclass=DummyObject):
     _backends = ["vision"]
 
     def __init__(self, *args, **kwargs):
@@ -569,14 +730,14 @@ class ViTImageProcessor(metaclass=DummyObject):
         requires_backends(self, ["vision"])
 
 
-class ViTHybridImageProcessor(metaclass=DummyObject):
+class VitMatteImageProcessor(metaclass=DummyObject):
     _backends = ["vision"]
 
     def __init__(self, *args, **kwargs):
         requires_backends(self, ["vision"])
 
 
-class VitMatteImageProcessor(metaclass=DummyObject):
+class VitPoseImageProcessor(metaclass=DummyObject):
     _backends = ["vision"]
 
     def __init__(self, *args, **kwargs):
@@ -598,6 +759,13 @@ class YolosFeatureExtractor(metaclass=DummyObject):
 
 
 class YolosImageProcessor(metaclass=DummyObject):
+    _backends = ["vision"]
+
+    def __init__(self, *args, **kwargs):
+        requires_backends(self, ["vision"])
+
+
+class ZoeDepthImageProcessor(metaclass=DummyObject):
     _backends = ["vision"]
 
     def __init__(self, *args, **kwargs):

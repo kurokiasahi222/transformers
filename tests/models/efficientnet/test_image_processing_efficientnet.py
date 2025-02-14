@@ -28,7 +28,7 @@ if is_vision_available():
     from transformers import EfficientNetImageProcessor
 
 
-class EfficientNetImageProcessorTester(unittest.TestCase):
+class EfficientNetImageProcessorTester:
     def __init__(
         self,
         parent,
@@ -86,6 +86,7 @@ class EfficientNetImageProcessorTest(ImageProcessingTestMixin, unittest.TestCase
     image_processing_class = EfficientNetImageProcessor if is_vision_available() else None
 
     def setUp(self):
+        super().setUp()
         self.image_processor_tester = EfficientNetImageProcessorTester(self)
 
     @property

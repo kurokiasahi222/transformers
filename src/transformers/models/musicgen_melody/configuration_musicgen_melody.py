@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" Musicgen Melody model configuration"""
+"""Musicgen Melody model configuration"""
 
 from ...configuration_utils import PretrainedConfig
 from ...utils import logging
@@ -20,10 +20,6 @@ from ..auto.configuration_auto import AutoConfig
 
 
 logger = logging.get_logger(__name__)
-
-MUSICGEN_MELODY_PRETRAINED_CONFIG_ARCHIVE_MAP = {
-    "facebook/musicgen-melody": "https://huggingface.co/facebook/musicgen-melody/resolve/main/config.json",
-}
 
 
 class MusicgenMelodyDecoderConfig(PretrainedConfig):
@@ -82,6 +78,7 @@ class MusicgenMelodyDecoderConfig(PretrainedConfig):
     """
 
     model_type = "musicgen_melody_decoder"
+    base_config_key = "decoder_config"
     keys_to_ignore_at_inference = ["past_key_values"]
 
     def __init__(
@@ -199,6 +196,11 @@ class MusicgenMelodyConfig(PretrainedConfig):
     ```"""
 
     model_type = "musicgen_melody"
+    sub_configs = {
+        "text_encoder": AutoConfig,
+        "audio_encoder": AutoConfig,
+        "decoder": MusicgenMelodyDecoderConfig,
+    }
     is_composition = True
 
     def __init__(

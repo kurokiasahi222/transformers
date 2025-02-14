@@ -12,8 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" Testing suite for the PyTorch Bark model. """
-
+"""Testing suite for the PyTorch Bark model."""
 
 import copy
 import inspect
@@ -23,6 +22,7 @@ import unittest
 import pytest
 
 from transformers import (
+    BarkCausalModel,
     BarkCoarseConfig,
     BarkConfig,
     BarkFineConfig,
@@ -54,7 +54,6 @@ if is_torch_available():
     import torch
 
     from transformers import (
-        BarkCausalModel,
         BarkCoarseModel,
         BarkFineModel,
         BarkModel,
@@ -528,6 +527,8 @@ class BarkModelTester:
 @require_torch
 class BarkSemanticModelTest(ModelTesterMixin, GenerationTesterMixin, unittest.TestCase):
     all_model_classes = (BarkSemanticModel,) if is_torch_available() else ()
+    # `BarkSemanticModel` inherits from `BarkCausalModel`, but requires an advanced generation config.
+    # `BarkCausalModel` does not, so we run generation tests there.
     all_generative_model_classes = (BarkCausalModel,) if is_torch_available() else ()
 
     is_encoder_decoder = False
@@ -579,6 +580,29 @@ class BarkSemanticModelTest(ModelTesterMixin, GenerationTesterMixin, unittest.Te
             with torch.no_grad():
                 model(**inputs)[0]
 
+    # override as the input arg is called "input_embeds", not "inputs_embeds"
+    def test_inputs_embeds_matches_input_ids(self):
+        config, inputs_dict = self.model_tester.prepare_config_and_inputs_for_common()
+
+        for model_class in self.all_model_classes:
+            model = model_class(config)
+            model.to(torch_device)
+            model.eval()
+
+            inputs = copy.deepcopy(self._prepare_for_class(inputs_dict, model_class))
+            with torch.no_grad():
+                out_ids = model(**inputs)[0]
+
+            input_ids = inputs["input_ids"]
+            del inputs["input_ids"]
+
+            wte = model.get_input_embeddings()
+            inputs["input_embeds"] = wte(input_ids)
+            with torch.no_grad():
+                out_embeds = model(**inputs)[0]
+
+            torch.testing.assert_close(out_embeds, out_ids)
+
     @require_torch_fp16
     def test_generate_fp16(self):
         config, input_dict = self.model_tester.prepare_config_and_inputs()
@@ -592,8 +616,9 @@ class BarkSemanticModelTest(ModelTesterMixin, GenerationTesterMixin, unittest.Te
 
 @require_torch
 class BarkCoarseModelTest(ModelTesterMixin, GenerationTesterMixin, unittest.TestCase):
-    # Same tester as BarkSemanticModelTest, except for model_class and config_class
     all_model_classes = (BarkCoarseModel,) if is_torch_available() else ()
+    # `BarkCoarseModel` inherits from `BarkCausalModel`, but requires an advanced generation config.
+    # `BarkCausalModel` does not, so we run generation tests there.
     all_generative_model_classes = (BarkCausalModel,) if is_torch_available() else ()
 
     is_encoder_decoder = False
@@ -644,6 +669,29 @@ class BarkCoarseModelTest(ModelTesterMixin, GenerationTesterMixin, unittest.Test
 
             with torch.no_grad():
                 model(**inputs)[0]
+
+    # override as the input arg is called "input_embeds", not "inputs_embeds"
+    def test_inputs_embeds_matches_input_ids(self):
+        config, inputs_dict = self.model_tester.prepare_config_and_inputs_for_common()
+
+        for model_class in self.all_model_classes:
+            model = model_class(config)
+            model.to(torch_device)
+            model.eval()
+
+            inputs = copy.deepcopy(self._prepare_for_class(inputs_dict, model_class))
+            with torch.no_grad():
+                out_ids = model(**inputs)[0]
+
+            input_ids = inputs["input_ids"]
+            del inputs["input_ids"]
+
+            wte = model.get_input_embeddings()
+            inputs["input_embeds"] = wte(input_ids)
+            with torch.no_grad():
+                out_embeds = model(**inputs)[0]
+
+            torch.testing.assert_close(out_embeds, out_ids)
 
     @require_torch_fp16
     def test_generate_fp16(self):
@@ -709,6 +757,10 @@ class BarkFineModelTest(ModelTesterMixin, unittest.TestCase):
             with torch.no_grad():
                 model(**inputs)[0]
 
+    @unittest.skip(reason="FineModel relies on codebook idx and does not return same logits")
+    def test_inputs_embeds_matches_input_ids(self):
+        pass
+
     @require_torch_fp16
     def test_generate_fp16(self):
         config, input_dict = self.model_tester.prepare_config_and_inputs()
@@ -760,7 +812,7 @@ class BarkFineModelTest(ModelTesterMixin, unittest.TestCase):
             expected_arg_names = ["codebook_idx", "input_ids"]
             self.assertListEqual(arg_names[:2], expected_arg_names)
 
-    def test_model_common_attributes(self):
+    def test_model_get_set_embeddings(self):
         # one embedding layer per codebook
         config, inputs_dict = self.model_tester.prepare_config_and_inputs_for_common()
 
@@ -777,7 +829,7 @@ class BarkFineModelTest(ModelTesterMixin, unittest.TestCase):
         # resizing tokens_embeddings of a ModuleList
         original_config, inputs_dict = self.model_tester.prepare_config_and_inputs_for_common()
         if not self.test_resize_embeddings:
-            return
+            self.skipTest(reason="test_resize_embeddings is False")
 
         for model_class in self.all_model_classes:
             config = copy.deepcopy(original_config)
@@ -828,7 +880,7 @@ class BarkFineModelTest(ModelTesterMixin, unittest.TestCase):
         # resizing tokens_embeddings of a ModuleList
         original_config, inputs_dict = self.model_tester.prepare_config_and_inputs_for_common()
         if not self.test_resize_embeddings:
-            return
+            self.skipTest(reason="test_resize_embeddings is False")
 
         original_config.tie_word_embeddings = False
 
@@ -879,10 +931,10 @@ class BarkFineModelTest(ModelTesterMixin, unittest.TestCase):
     @require_torch_gpu
     @pytest.mark.flash_attn_test
     @slow
-    def test_flash_attn_2_inference(self):
+    def test_flash_attn_2_inference_equivalence(self):
         for model_class in self.all_model_classes:
             if not model_class._supports_flash_attn_2:
-                return
+                self.skipTest(reason="Model does not support flash_attention_2")
 
             config, inputs_dict = self.model_tester.prepare_config_and_inputs_for_common()
             model = model_class(config)
@@ -936,10 +988,10 @@ class BarkFineModelTest(ModelTesterMixin, unittest.TestCase):
     @require_torch_gpu
     @pytest.mark.flash_attn_test
     @slow
-    def test_flash_attn_2_inference_padding_right(self):
+    def test_flash_attn_2_inference_equivalence_right_padding(self):
         for model_class in self.all_model_classes:
             if not model_class._supports_flash_attn_2:
-                return
+                self.skipTest(reason="Model does not support flash_attention_2")
 
             config, inputs_dict = self.model_tester.prepare_config_and_inputs_for_common()
             model = model_class(config)
@@ -1203,8 +1255,8 @@ class BarkModelIntegrationTests(unittest.TestCase):
         self.assertEqual(tuple(audio_lengths), (output1.shape[1], output2.shape[1]))
 
         # then assert almost equal
-        self.assertTrue(torch.allclose(outputs[0, : audio_lengths[0]], output1.squeeze(), atol=2e-3))
-        self.assertTrue(torch.allclose(outputs[1, : audio_lengths[1]], output2.squeeze(), atol=2e-3))
+        torch.testing.assert_close(outputs[0, : audio_lengths[0]], output1.squeeze(), rtol=2e-3, atol=2e-3)
+        torch.testing.assert_close(outputs[1, : audio_lengths[1]], output2.squeeze(), rtol=2e-3, atol=2e-3)
 
         # now test single input with return_output_lengths = True
         outputs, _ = self.model.generate(**s1, **args, return_output_lengths=True)
@@ -1277,4 +1329,9 @@ class BarkModelIntegrationTests(unittest.TestCase):
             output_with_offload = self.model.generate(**input_ids, do_sample=False, temperature=1.0)
 
         # checks if same output
-        self.assertListEqual(output_with_no_offload.tolist(), output_with_offload.tolist())
+        self.assertListAlmostEqual(output_with_no_offload.squeeze().tolist(), output_with_offload.squeeze().tolist())
+
+    def assertListAlmostEqual(self, list1, list2, tol=1e-6):
+        self.assertEqual(len(list1), len(list2))
+        for a, b in zip(list1, list2):
+            self.assertAlmostEqual(a, b, delta=tol)

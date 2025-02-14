@@ -26,7 +26,7 @@ if is_vision_available():
     from transformers import MobileNetV1ImageProcessor
 
 
-class MobileNetV1ImageProcessingTester(unittest.TestCase):
+class MobileNetV1ImageProcessingTester:
     def __init__(
         self,
         parent,
@@ -82,6 +82,7 @@ class MobileNetV1ImageProcessingTest(ImageProcessingTestMixin, unittest.TestCase
     image_processing_class = MobileNetV1ImageProcessor if is_vision_available() else None
 
     def setUp(self):
+        super().setUp()
         self.image_processor_tester = MobileNetV1ImageProcessingTester(self)
 
     @property

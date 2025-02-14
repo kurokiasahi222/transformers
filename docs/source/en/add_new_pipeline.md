@@ -184,7 +184,7 @@ class PairClassificationPipeline(Pipeline):
 ```
 
 The implementation is framework agnostic, and will work for PyTorch and TensorFlow models. If we have saved this in
-a file named `pair_classification.py`, we can then import it and register it like this:
+a file named `pair_classification.py`, we can then import it and register it like this.
 
 ```py
 from pair_classification import PairClassificationPipeline
@@ -199,6 +199,22 @@ PIPELINE_REGISTRY.register_pipeline(
 )
 ```
 
+The [register_pipeline](https://github.com/huggingface/transformers/blob/9feae5fb0164e89d4998e5776897c16f7330d3df/src/transformers/pipelines/base.py#L1387) function registers the pipeline details (task type, pipeline class, supported backends) to a models `config.json` file.
+
+```json
+  "custom_pipelines": {
+    "pair-classification": {
+      "impl": "pair_classification.PairClassificationPipeline",
+      "pt": [
+        "AutoModelForSequenceClassification"
+      ],
+      "tf": [
+        "TFAutoModelForSequenceClassification"
+      ],
+    }
+  },
+```
+
 Once this is done, we can use it with a pretrained model. For instance `sgugger/finetuned-bert-mrpc` has been
 fine-tuned on the MRPC dataset, which classifies pairs of sentences as paraphrases or not.
 
@@ -208,14 +224,10 @@ from transformers import pipeline
 classifier = pipeline("pair-classification", model="sgugger/finetuned-bert-mrpc")
 ```
 
-Then we can share it on the Hub by using the `save_pretrained` method in a `Repository`:
+Then we can share it on the Hub by using the `push_to_hub` method:
 
 ```py
-from huggingface_hub import Repository
-
-repo = Repository("test-dynamic-pipeline", clone_from="{your_username}/test-dynamic-pipeline")
-classifier.save_pretrained("test-dynamic-pipeline")
-repo.push_to_hub()
+classifier.push_to_hub("test-dynamic-pipeline")
 ```
 
 This will copy the file where you defined `PairClassificationPipeline` inside the folder `"test-dynamic-pipeline"`,

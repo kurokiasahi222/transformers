@@ -12,8 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" Testing suite for the PyTorch RoFormer model. """
-
+"""Testing suite for the PyTorch RoFormer model."""
 
 import unittest
 
@@ -38,7 +37,6 @@ if is_torch_available():
         RoFormerModel,
     )
     from transformers.models.roformer.modeling_roformer import (
-        ROFORMER_PRETRAINED_MODEL_ARCHIVE_LIST,
         RoFormerSelfAttention,
         RoFormerSinusoidalPositionalEmbedding,
     )
@@ -394,7 +392,6 @@ class RoFormerModelTest(ModelTesterMixin, PipelineTesterMixin, unittest.TestCase
         if is_torch_available()
         else ()
     )
-    all_generative_model_classes = (RoFormerForCausalLM,) if is_torch_available() else ()
     pipeline_model_mapping = (
         {
             "feature-extraction": RoFormerModel,
@@ -482,9 +479,9 @@ class RoFormerModelTest(ModelTesterMixin, PipelineTesterMixin, unittest.TestCase
 
     @slow
     def test_model_from_pretrained(self):
-        for model_name in ROFORMER_PRETRAINED_MODEL_ARCHIVE_LIST[:1]:
-            model = RoFormerModel.from_pretrained(model_name)
-            self.assertIsNotNone(model)
+        model_name = "junnyu/roformer_chinese_small"
+        model = RoFormerModel.from_pretrained(model_name)
+        self.assertIsNotNone(model)
 
     @unittest.skip(
         reason="This architecure seem to not compute gradients properly when using GC, check: https://github.com/huggingface/transformers/pull/27124"
@@ -525,7 +522,7 @@ class RoFormerModelIntegrationTest(unittest.TestCase):
             [[[-0.1205, -1.0265, 0.2922], [-1.5134, 0.1974, 0.1519], [-5.0135, -3.9003, -0.8404]]]
         )
 
-        self.assertTrue(torch.allclose(output[:, :3, :3], expected_slice, atol=1e-4))
+        torch.testing.assert_close(output[:, :3, :3], expected_slice, rtol=1e-4, atol=1e-4)
 
 
 @require_torch

@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" UniSpeechSat model configuration"""
+"""UniSpeechSat model configuration"""
 
 import functools
 import operator
@@ -22,13 +22,6 @@ from ...utils import logging
 
 
 logger = logging.get_logger(__name__)
-
-UNISPEECH_SAT_PRETRAINED_CONFIG_ARCHIVE_MAP = {
-    "microsoft/unispeech-sat-base-100h-libri-ft": (
-        "https://huggingface.co/microsoft/unispeech-sat-base-100h-libri-ft/resolve/main/config.json"
-    ),
-    # See all UniSpeechSat models at https://huggingface.co/models?filter=unispeech_sat
-}
 
 
 class UniSpeechSatConfig(PretrainedConfig):
@@ -329,3 +322,6 @@ class UniSpeechSatConfig(PretrainedConfig):
     @property
     def inputs_to_logits_ratio(self):
         return functools.reduce(operator.mul, self.conv_stride, 1)
+
+
+__all__ = ["UniSpeechSatConfig"]

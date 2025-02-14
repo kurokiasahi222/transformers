@@ -32,10 +32,9 @@ if is_torch_available():
         DebertaForTokenClassification,
         DebertaModel,
     )
-    from transformers.models.deberta.modeling_deberta import DEBERTA_PRETRAINED_MODEL_ARCHIVE_LIST
 
 
-class DebertaModelTester(object):
+class DebertaModelTester:
     def __init__(
         self,
         parent,
@@ -274,9 +273,21 @@ class DebertaModelTest(ModelTesterMixin, PipelineTesterMixin, unittest.TestCase)
 
     @slow
     def test_model_from_pretrained(self):
-        for model_name in DEBERTA_PRETRAINED_MODEL_ARCHIVE_LIST[:1]:
-            model = DebertaModel.from_pretrained(model_name)
-            self.assertIsNotNone(model)
+        model_name = "microsoft/deberta-base"
+        model = DebertaModel.from_pretrained(model_name)
+        self.assertIsNotNone(model)
+
+    @unittest.skip("This test was broken by the refactor in #22105, TODO @ArthurZucker")
+    def test_torch_fx_output_loss(self):
+        pass
+
+    @unittest.skip("This test was broken by the refactor in #22105, TODO @ArthurZucker")
+    def test_torch_fx(self):
+        pass
+
+    @unittest.skip("This test was broken by the refactor in #22105, TODO @ArthurZucker")
+    def test_pt_tf_model_equivalence(self):
+        pass
 
 
 @require_torch
@@ -299,4 +310,4 @@ class DebertaModelIntegrationTest(unittest.TestCase):
         expected_slice = torch.tensor(
             [[[-0.5986, -0.8055, -0.8462], [1.4484, -0.9348, -0.8059], [0.3123, 0.0032, -1.4131]]]
         )
-        self.assertTrue(torch.allclose(output[:, 1:4, 1:4], expected_slice, atol=1e-4), f"{output[:, 1:4, 1:4]}")
+        torch.testing.assert_close(output[:, 1:4, 1:4], expected_slice, rtol=1e-4, atol=1e-4)

@@ -17,7 +17,6 @@
 Processor class for CLVP
 """
 
-
 from ...processing_utils import ProcessorMixin
 
 
@@ -89,3 +88,6 @@ class ClvpProcessor(ProcessorMixin):
         the docstring of this method for more information.
         """
         return self.tokenizer.decode(*args, **kwargs)
+
+
+__all__ = ["ClvpProcessor"]

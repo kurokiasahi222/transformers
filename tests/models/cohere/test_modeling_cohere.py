@@ -12,11 +12,9 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" Testing suite for the PyTorch Cohere model. """
+"""Testing suite for the PyTorch Cohere model."""
 
 import unittest
-
-from parameterized import parameterized
 
 from transformers import CohereConfig, is_torch_available
 from transformers.testing_utils import (
@@ -42,6 +40,11 @@ if is_torch_available():
 
 # Copied from transformers.tests.models.llama.LlamaModelTester with Llama->Cohere
 class CohereModelTester:
+    config_class = CohereConfig
+    if is_torch_available():
+        model_class = CohereModel
+        for_causal_lm_class = CohereForCausalLM
+
     def __init__(
         self,
         parent,
@@ -53,7 +56,7 @@ class CohereModelTester:
         use_labels=True,
         vocab_size=99,
         hidden_size=32,
-        num_hidden_layers=2,
+        num_hidden_layers=4,
         num_attention_heads=4,
         intermediate_size=37,
         hidden_act="gelu",
@@ -97,7 +100,7 @@ class CohereModelTester:
 
         input_mask = None
         if self.use_input_mask:
-            input_mask = torch.tril(torch.ones(self.batch_size, self.seq_length)).to(torch_device)
+            input_mask = torch.tril(torch.ones_like(input_ids).to(torch_device))
 
         token_type_ids = None
         if self.use_token_type_ids:
@@ -117,7 +120,7 @@ class CohereModelTester:
 
     # Ignore copy
     def get_config(self):
-        return CohereConfig(
+        return self.config_class(
             vocab_size=self.vocab_size,
             hidden_size=self.hidden_size,
             num_hidden_layers=self.num_hidden_layers,
@@ -131,13 +134,12 @@ class CohereModelTester:
             is_decoder=False,
             initializer_range=self.initializer_range,
             pad_token_id=self.pad_token_id,
-            eos_token_id=self.pad_token_id,
         )
 
     def create_and_check_model(
         self, config, input_ids, token_type_ids, input_mask, sequence_labels, token_labels, choice_labels
     ):
-        model = CohereModel(config=config)
+        model = self.model_class(config=config)
         model.to(torch_device)
         model.eval()
         result = model(input_ids, attention_mask=input_mask)
@@ -157,7 +159,7 @@ class CohereModelTester:
         encoder_attention_mask,
     ):
         config.add_cross_attention = True
-        model = CohereModel(config)
+        model = self.model_class(config)
         model.to(torch_device)
         model.eval()
         result = model(
@@ -186,7 +188,7 @@ class CohereModelTester:
         encoder_hidden_states,
         encoder_attention_mask,
     ):
-        model = CohereForCausalLM(config=config)
+        model = self.for_causal_lm_class(config=config)
         model.to(torch_device)
         model.eval()
         result = model(input_ids, attention_mask=input_mask, labels=token_labels)
@@ -206,7 +208,7 @@ class CohereModelTester:
     ):
         config.is_decoder = True
         config.add_cross_attention = True
-        model = CohereForCausalLM(config=config)
+        model = self.for_causal_lm_class(config=config)
         model.to(torch_device)
         model.eval()
 
@@ -272,7 +274,6 @@ class CohereModelTester:
 @require_torch
 class CohereModelTest(ModelTesterMixin, GenerationTesterMixin, PipelineTesterMixin, unittest.TestCase):
     all_model_classes = (CohereModel, CohereForCausalLM) if is_torch_available() else ()
-    all_generative_model_classes = (CohereForCausalLM,) if is_torch_available() else ()
     pipeline_model_mapping = (
         {
             "feature-extraction": CohereModel,
@@ -283,9 +284,7 @@ class CohereModelTest(ModelTesterMixin, GenerationTesterMixin, PipelineTesterMix
     )
     test_headmasking = False
     test_pruning = False
-    fx_compatible = (
-        False  # FIXME @michaelbenayoun or @fxmarty from https://github.com/huggingface/transformers/pull/29753
-    )
+    fx_compatible = False
 
     # Need to use `0.8` instead of `0.9` for `test_cpu_offload`
     # This is because we are hitting edge cases with the causal_mask buffer
@@ -298,11 +297,6 @@ class CohereModelTest(ModelTesterMixin, GenerationTesterMixin, PipelineTesterMix
     def test_config(self):
         self.config_tester.run_common_tests()
 
-    @unittest.skip("TODO @gante fix this for Cohere")
-    @parameterized.expand([(1, False), (1, True), (4, False)])
-    def test_new_cache_format(self, num_beams, do_sample):
-        pass
-
     def test_model(self):
         config_and_inputs = self.model_tester.prepare_config_and_inputs()
         self.model_tester.create_and_check_model(*config_and_inputs)
@@ -313,78 +307,24 @@ class CohereModelTest(ModelTesterMixin, GenerationTesterMixin, PipelineTesterMix
             config_and_inputs[0].position_embedding_type = type
             self.model_tester.create_and_check_model(*config_and_inputs)
 
-    @require_bitsandbytes
-    @require_torch_sdpa
-    @require_torch_multi_gpu
-    @slow
-    def test_eager_matches_sdpa_generate(self):
-        """
-        Overwritting the common test as the test is flaky on tiny models
-        """
-        max_new_tokens = 30
-
-        model_id = "CohereForAI/c4ai-command-r-v01-4bit"
-        tokenizer = AutoTokenizer.from_pretrained(model_id)
-
-        model_sdpa = CohereForCausalLM.from_pretrained(
-            model_id, torch_dtype=torch.float16, low_cpu_mem_usage=True, device_map="auto"
-        )
-        self.assertTrue(model_sdpa.config._attn_implementation == "sdpa")
-
-        model_eager = CohereForCausalLM.from_pretrained(
-            model_id, torch_dtype=torch.float16, attn_implementation="eager", device_map="auto"
-        )
-
-        self.assertTrue(model_eager.config._attn_implementation == "eager")
-
-        for name, submodule in model_eager.named_modules():
-            if "SdpaAttention" in submodule.__class__.__name__:
-                raise ValueError("The eager model should not have SDPA attention layers")
-
-        has_sdpa = False
-        for name, submodule in model_sdpa.named_modules():
-            if "SdpaAttention" in submodule.__class__.__name__:
-                has_sdpa = True
-                break
-        if not has_sdpa:
-            raise ValueError("The SDPA model should have SDPA attention layers")
-
-        texts = [
-            "hi here's a longer context, getting longer and",
-            "Hello this is a very long sentence my friend, very long for real",
-            "Today I am in Paris and",
-        ]
-
-        for padding_side in ["left", "right"]:
-            tokenizer.padding_side = padding_side
-            tokenizer.pad_token = tokenizer.eos_token
-
-            inputs = tokenizer(texts, return_tensors="pt", padding=True).to(torch_device)
-
-            res_eager = model_eager.generate(**inputs, max_new_tokens=max_new_tokens, do_sample=False)
-            res_sdpa = model_sdpa.generate(**inputs, max_new_tokens=max_new_tokens, do_sample=False)
-
-            with self.subTest(f"{padding_side}"):
-                torch.testing.assert_close(
-                    res_eager,
-                    res_sdpa,
-                    msg=f"\n{tokenizer.batch_decode(res_eager)} \nvs\n{tokenizer.batch_decode(res_sdpa)}",
-                )
+    def test_torch_fx_output_loss(self):
+        super().test_torch_fx_output_loss()
 
 
 @require_torch
 @slow
 class CohereIntegrationTest(unittest.TestCase):
     @require_torch_multi_gpu
+    @require_bitsandbytes
     def test_batched_4bit(self):
         model_id = "CohereForAI/c4ai-command-r-v01-4bit"
 
         EXPECTED_TEXT = [
             'Hello today I am going to show you how to make a simple and easy card using the new stamp set called "Hello" from the Occasions catalog. This set is so versatile and can be used for many occasions. I used the new In',
-            "Hi there, here we are again with another great collection of free fonts. This time we have gathered 10 free fonts that you can download and use in your designs. These fonts are free for personal and commercial use. So",
+            "Hi there, here we are again with another great collection of free fonts for your next project. This time we have gathered 10 free fonts that you can download and use in your designs. These fonts are perfect for any kind",
         ]
 
-        model = CohereForCausalLM.from_pretrained(model_id)
+        model = CohereForCausalLM.from_pretrained(model_id, device_map="auto")
         tokenizer = AutoTokenizer.from_pretrained(model_id)
 
         tokenizer.pad_token = tokenizer.eos_token
@@ -395,6 +335,7 @@ class CohereIntegrationTest(unittest.TestCase):
         output = model.generate(**inputs, max_new_tokens=40, do_sample=False)
         self.assertEqual(tokenizer.batch_decode(output, skip_special_tokens=True), EXPECTED_TEXT)
 
+    @require_torch_sdpa
     def test_batched_small_model_logits(self):
         # Since the model is very large, we created a random cohere model so that we can do a simple
         # logits check on it.
@@ -405,7 +346,7 @@ class CohereIntegrationTest(unittest.TestCase):
                 [[0.0000, 0.1866, -0.1997], [0.0000, -0.0736, 0.1785], [0.0000, -0.1965, -0.0569]],
                 [[0.0000, -0.0302, 0.1488], [0.0000, -0.0402, 0.1351], [0.0000, -0.0341, 0.1116]],
             ]
-        ).to(torch_device)
+        ).to(device=torch_device, dtype=torch.float16)
 
         tokenizer = AutoTokenizer.from_pretrained(model_id)
         model = CohereForCausalLM.from_pretrained(model_id, low_cpu_mem_usage=True, torch_dtype=torch.float16).to(
@@ -421,4 +362,4 @@ class CohereIntegrationTest(unittest.TestCase):
             output = model(**inputs)
 
         logits = output.logits
-        self.assertTrue(torch.allclose(EXPECTED_LOGITS, logits[:, :3, :3], rtol=1e-3, atol=1e-3))
+        torch.testing.assert_close(EXPECTED_LOGITS, logits[:, :3, :3], rtol=1e-3, atol=1e-3)

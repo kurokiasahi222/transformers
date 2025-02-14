@@ -48,7 +48,7 @@ def floats_list(shape, scale=1.0, rng=None, name=None):
 
 @require_torch
 @require_torchaudio
-class Speech2TextFeatureExtractionTester(unittest.TestCase):
+class Speech2TextFeatureExtractionTester:
     def __init__(
         self,
         parent,
@@ -277,7 +277,7 @@ class Speech2TextFeatureExtractionTest(SequenceFeatureExtractionTestMixin, unitt
         input_speech = self._load_datasamples(1)
         feature_extractor = self.feature_extraction_class(**self.feat_extract_tester.prepare_feat_extract_dict())
         input_features = feature_extractor(input_speech, return_tensors="pt").input_features
-        self.assertEquals(input_features.shape, (1, 584, 24))
+        self.assertEqual(input_features.shape, (1, 584, 24))
         self.assertTrue(np.allclose(input_features[0, 0, :30], expected, atol=1e-4))
 
     def test_feat_extract_from_and_save_pretrained(self):

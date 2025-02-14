@@ -15,6 +15,7 @@
 """
 Text/audio processor class for MusicGen
 """
+
 from typing import List, Optional
 
 import numpy as np
@@ -138,3 +139,6 @@ class MusicgenProcessor(ProcessorMixin):
             audio_values[i] = sliced_audio.reshape(channels, -1)
 
         return audio_values
+
+
+__all__ = ["MusicgenProcessor"]

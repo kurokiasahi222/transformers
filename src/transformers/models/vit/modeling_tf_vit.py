@@ -12,8 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" TF 2.0 ViT model."""
-
+"""TF 2.0 ViT model."""
 
 from __future__ import annotations
 
@@ -903,3 +902,6 @@ class TFViTForImageClassification(TFViTPreTrainedModel, TFSequenceClassification
         if getattr(self, "classifier", None) is not None:
             with tf.name_scope(self.classifier.name):
                 self.classifier.build([None, None, self.config.hidden_size])
+
+
+__all__ = ["TFViTForImageClassification", "TFViTModel", "TFViTPreTrainedModel"]

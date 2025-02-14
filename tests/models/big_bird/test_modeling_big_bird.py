@@ -12,8 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" Testing suite for the PyTorch BigBird model. """
-
+"""Testing suite for the PyTorch BigBird model."""
 
 import unittest
 
@@ -41,7 +40,6 @@ if is_torch_available():
         BigBirdForTokenClassification,
         BigBirdModel,
     )
-    from transformers.models.big_bird.modeling_big_bird import BIG_BIRD_PRETRAINED_MODEL_ARCHIVE_LIST
 
 
 class BigBirdModelTester:
@@ -453,7 +451,6 @@ class BigBirdModelTest(ModelTesterMixin, PipelineTesterMixin, unittest.TestCase)
         if is_torch_available()
         else ()
     )
-    all_generative_model_classes = (BigBirdForCausalLM,) if is_torch_available() else ()
     pipeline_model_mapping = (
         {
             "feature-extraction": BigBirdModel,
@@ -561,9 +558,9 @@ class BigBirdModelTest(ModelTesterMixin, PipelineTesterMixin, unittest.TestCase)
 
     @slow
     def test_model_from_pretrained(self):
-        for model_name in BIG_BIRD_PRETRAINED_MODEL_ARCHIVE_LIST[:1]:
-            model = BigBirdForPreTraining.from_pretrained(model_name)
-            self.assertIsNotNone(model)
+        model_name = "google/bigbird-roberta-base"
+        model = BigBirdForPreTraining.from_pretrained(model_name)
+        self.assertIsNotNone(model)
 
     def test_model_various_attn_type(self):
         config_and_inputs = self.model_tester.prepare_config_and_inputs()
@@ -676,12 +673,12 @@ class BigBirdModelIntegrationTest(unittest.TestCase):
             device=torch_device,
         )
 
-        self.assertTrue(
-            torch.allclose(prediction_logits[0, 128:132, 128:132], expected_prediction_logits_slice, atol=1e-4)
+        torch.testing.assert_close(
+            prediction_logits[0, 128:132, 128:132], expected_prediction_logits_slice, rtol=1e-4, atol=1e-4
         )
 
         expected_seq_relationship_logits = torch.tensor([[46.9465, 47.9517]], device=torch_device)
-        self.assertTrue(torch.allclose(seq_relationship_logits, expected_seq_relationship_logits, atol=1e-4))
+        torch.testing.assert_close(seq_relationship_logits, expected_seq_relationship_logits, rtol=1e-4, atol=1e-4)
 
     def test_inference_full_pretraining(self):
         model = BigBirdForPreTraining.from_pretrained("google/bigbird-roberta-base", attention_type="original_full")
@@ -705,12 +702,12 @@ class BigBirdModelIntegrationTest(unittest.TestCase):
             ],
             device=torch_device,
         )
-        self.assertTrue(
-            torch.allclose(prediction_logits[0, 128:132, 128:132], expected_prediction_logits_slice, atol=1e-4)
+        torch.testing.assert_close(
+            prediction_logits[0, 128:132, 128:132], expected_prediction_logits_slice, rtol=1e-4, atol=1e-4
         )
 
         expected_seq_relationship_logits = torch.tensor([[41.4503, 41.2406]], device=torch_device)
-        self.assertTrue(torch.allclose(seq_relationship_logits, expected_seq_relationship_logits, atol=1e-4))
+        torch.testing.assert_close(seq_relationship_logits, expected_seq_relationship_logits, rtol=1e-4, atol=1e-4)
 
     def test_block_sparse_attention_probs(self):
         """
@@ -718,7 +715,7 @@ class BigBirdModelIntegrationTest(unittest.TestCase):
         """
 
         if not self.test_attention_probs:
-            return
+            self.skipTest("test_attention_probs is set to False")
 
         model = BigBirdModel.from_pretrained(
             "google/bigbird-roberta-base", attention_type="block_sparse", num_random_blocks=3, block_size=16
@@ -775,7 +772,7 @@ class BigBirdModelIntegrationTest(unittest.TestCase):
             cl = torch.einsum("bhqk,bhkd->bhqd", attention_probs, value_layer)
             cl = cl.view(context_layer.size())
 
-            self.assertTrue(torch.allclose(context_layer, cl, atol=0.001))
+            torch.testing.assert_close(context_layer, cl, rtol=0.001, atol=0.001)
 
     def test_block_sparse_context_layer(self):
         model = BigBirdModel.from_pretrained(
@@ -824,7 +821,7 @@ class BigBirdModelIntegrationTest(unittest.TestCase):
         context_layer = context_layer[0]
 
         self.assertEqual(context_layer.shape, torch.Size((1, 128, 768)))
-        self.assertTrue(torch.allclose(context_layer[0, 64:78, 300:310], targeted_cl, atol=0.0001))
+        torch.testing.assert_close(context_layer[0, 64:78, 300:310], targeted_cl, rtol=0.0001, atol=0.0001)
 
     def test_tokenizer_inference(self):
         tokenizer = BigBirdTokenizer.from_pretrained("google/bigbird-roberta-base")
@@ -873,7 +870,7 @@ class BigBirdModelIntegrationTest(unittest.TestCase):
             device=torch_device,
         )
 
-        self.assertTrue(torch.allclose(prediction[0, 52:64, 320:324], expected_prediction, atol=1e-4))
+        torch.testing.assert_close(prediction[0, 52:64, 320:324], expected_prediction, rtol=1e-4, atol=1e-4)
 
     def test_inference_question_answering(self):
         tokenizer = BigBirdTokenizer.from_pretrained("google/bigbird-base-trivia-itc")
@@ -925,8 +922,8 @@ class BigBirdModelIntegrationTest(unittest.TestCase):
         )
         # fmt: on
 
-        self.assertTrue(torch.allclose(start_logits[:, 64:96], target_start_logits, atol=1e-4))
-        self.assertTrue(torch.allclose(end_logits[:, 64:96], target_end_logits, atol=1e-4))
+        torch.testing.assert_close(start_logits[:, 64:96], target_start_logits, rtol=1e-4, atol=1e-4)
+        torch.testing.assert_close(end_logits[:, 64:96], target_end_logits, rtol=1e-4, atol=1e-4)
 
         input_ids = inputs["input_ids"].tolist()
         answer = [
@@ -968,4 +965,4 @@ class BigBirdModelIntegrationTest(unittest.TestCase):
         # fmt: on
 
         self.assertEqual(output.shape, torch.Size((1, 241, 768)))
-        self.assertTrue(torch.allclose(output[0, 64:78, 300:310], target, atol=0.0001))
+        torch.testing.assert_close(output[0, 64:78, 300:310], target, rtol=0.0001, atol=0.0001)

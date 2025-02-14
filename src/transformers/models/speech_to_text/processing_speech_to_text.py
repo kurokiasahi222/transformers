@@ -15,6 +15,7 @@
 """
 Speech processor class for Speech2Text
 """
+
 import warnings
 from contextlib import contextmanager
 
@@ -114,3 +115,6 @@ class Speech2TextProcessor(ProcessorMixin):
         yield
         self.current_processor = self.feature_extractor
         self._in_target_context_manager = False
+
+
+__all__ = ["Speech2TextProcessor"]

@@ -12,8 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" Testing suite for the PyTorch OwlViT model. """
-
+"""Testing suite for the PyTorch OwlViT model."""
 
 import inspect
 import os
@@ -50,7 +49,6 @@ if is_torch_available():
     from torch import nn
 
     from transformers import OwlViTForObjectDetection, OwlViTModel, OwlViTTextModel, OwlViTVisionModel
-    from transformers.models.owlvit.modeling_owlvit import OWLVIT_PRETRAINED_MODEL_ARCHIVE_LIST
 
 
 if is_vision_available():
@@ -162,7 +160,7 @@ class OwlViTVisionModelTest(ModelTesterMixin, unittest.TestCase):
     def test_inputs_embeds(self):
         pass
 
-    def test_model_common_attributes(self):
+    def test_model_get_set_embeddings(self):
         config, _ = self.model_tester.prepare_config_and_inputs_for_common()
 
         for model_class in self.all_model_classes:
@@ -217,9 +215,9 @@ class OwlViTVisionModelTest(ModelTesterMixin, unittest.TestCase):
 
     @slow
     def test_model_from_pretrained(self):
-        for model_name in OWLVIT_PRETRAINED_MODEL_ARCHIVE_LIST[:1]:
-            model = OwlViTVisionModel.from_pretrained(model_name)
-            self.assertIsNotNone(model)
+        model_name = "google/owlvit-base-patch32"
+        model = OwlViTVisionModel.from_pretrained(model_name)
+        self.assertIsNotNone(model)
 
 
 class OwlViTTextModelTester:
@@ -363,9 +361,9 @@ class OwlViTTextModelTest(ModelTesterMixin, unittest.TestCase):
 
     @slow
     def test_model_from_pretrained(self):
-        for model_name in OWLVIT_PRETRAINED_MODEL_ARCHIVE_LIST[:1]:
-            model = OwlViTTextModel.from_pretrained(model_name)
-            self.assertIsNotNone(model)
+        model_name = "google/owlvit-base-patch32"
+        model = OwlViTTextModel.from_pretrained(model_name)
+        self.assertIsNotNone(model)
 
 
 class OwlViTModelTester:
@@ -444,6 +442,13 @@ class OwlViTModelTest(ModelTesterMixin, PipelineTesterMixin, unittest.TestCase):
 
     def setUp(self):
         self.model_tester = OwlViTModelTester(self)
+        common_properties = ["projection_dim", "logit_scale_init_value"]
+        self.config_tester = ConfigTester(
+            self, config_class=OwlViTConfig, has_text_modality=False, common_properties=common_properties
+        )
+
+    def test_config(self):
+        self.config_tester.run_common_tests()
 
     def test_model(self):
         config_and_inputs = self.model_tester.prepare_config_and_inputs()
@@ -462,7 +467,7 @@ class OwlViTModelTest(ModelTesterMixin, PipelineTesterMixin, unittest.TestCase):
         pass
 
     @unittest.skip(reason="OwlViTModel does not have input/output embeddings")
-    def test_model_common_attributes(self):
+    def test_model_get_set_embeddings(self):
         pass
 
     # override as the `logit_scale` parameter initilization is different for OWLVIT
@@ -491,7 +496,7 @@ class OwlViTModelTest(ModelTesterMixin, PipelineTesterMixin, unittest.TestCase):
 
     def _create_and_check_torchscript(self, config, inputs_dict):
         if not self.test_torchscript:
-            return
+            self.skipTest(reason="test_torchscript is set to False")
 
         configs_no_init = _config_zero_init(config)  # To be sure we have no Nan
         configs_no_init.torchscript = True
@@ -573,9 +578,9 @@ class OwlViTModelTest(ModelTesterMixin, PipelineTesterMixin, unittest.TestCase):
 
     @slow
     def test_model_from_pretrained(self):
-        for model_name in OWLVIT_PRETRAINED_MODEL_ARCHIVE_LIST[:1]:
-            model = OwlViTModel.from_pretrained(model_name)
-            self.assertIsNotNone(model)
+        model_name = "google/owlvit-base-patch32"
+        model = OwlViTModel.from_pretrained(model_name)
+        self.assertIsNotNone(model)
 
 
 class OwlViTForObjectDetectionTester:
@@ -666,7 +671,7 @@ class OwlViTForObjectDetectionTest(ModelTesterMixin, unittest.TestCase):
         pass
 
     @unittest.skip(reason="OwlViTModel does not have input/output embeddings")
-    def test_model_common_attributes(self):
+    def test_model_get_set_embeddings(self):
         pass
 
     @unittest.skip(reason="Test_initialization is tested in individual model tests")
@@ -703,7 +708,7 @@ class OwlViTForObjectDetectionTest(ModelTesterMixin, unittest.TestCase):
 
     def _create_and_check_torchscript(self, config, inputs_dict):
         if not self.test_torchscript:
-            return
+            self.skipTest(reason="test_torchscript is set to False")
 
         configs_no_init = _config_zero_init(config)  # To be sure we have no Nan
         configs_no_init.torchscript = True
@@ -770,9 +775,9 @@ class OwlViTForObjectDetectionTest(ModelTesterMixin, unittest.TestCase):
 
     @slow
     def test_model_from_pretrained(self):
-        for model_name in OWLVIT_PRETRAINED_MODEL_ARCHIVE_LIST[:1]:
-            model = OwlViTForObjectDetection.from_pretrained(model_name)
-            self.assertIsNotNone(model)
+        model_name = "google/owlvit-base-patch32"
+        model = OwlViTForObjectDetection.from_pretrained(model_name)
+        self.assertIsNotNone(model)
 
 
 # We will verify our results on an image of cute cats
@@ -814,7 +819,145 @@ class OwlViTModelIntegrationTest(unittest.TestCase):
             torch.Size((inputs.input_ids.shape[0], inputs.pixel_values.shape[0])),
         )
         expected_logits = torch.tensor([[3.4613, 0.9403]], device=torch_device)
-        self.assertTrue(torch.allclose(outputs.logits_per_image, expected_logits, atol=1e-3))
+        torch.testing.assert_close(outputs.logits_per_image, expected_logits, rtol=1e-3, atol=1e-3)
+
+    @slow
+    def test_inference_interpolate_pos_encoding(self):
+        model_name = "google/owlvit-base-patch32"
+        model = OwlViTModel.from_pretrained(model_name).to(torch_device)
+        processor = OwlViTProcessor.from_pretrained(model_name)
+        processor.image_processor.size = {"height": 800, "width": 800}
+
+        image = prepare_img()
+        inputs = processor(
+            text=[["a photo of a cat", "a photo of a dog"]],
+            images=image,
+            max_length=16,
+            padding="max_length",
+            return_tensors="pt",
+        ).to(torch_device)
+
+        # forward pass
+        with torch.no_grad():
+            outputs = model(**inputs, interpolate_pos_encoding=True)
+
+        # verify the logits
+        self.assertEqual(
+            outputs.logits_per_image.shape,
+            torch.Size((inputs.pixel_values.shape[0], inputs.input_ids.shape[0])),
+        )
+        self.assertEqual(
+            outputs.logits_per_text.shape,
+            torch.Size((inputs.input_ids.shape[0], inputs.pixel_values.shape[0])),
+        )
+        expected_logits = torch.tensor([[3.6278, 0.8861]], device=torch_device)
+        torch.testing.assert_close(outputs.logits_per_image, expected_logits, rtol=1e-3, atol=1e-3)
+
+        expected_shape = torch.Size((1, 626, 768))
+        self.assertEqual(outputs.vision_model_output.last_hidden_state.shape, expected_shape)
+
+        # OwlViTForObjectDetection part.
+        model = OwlViTForObjectDetection.from_pretrained(model_name).to(torch_device)
+
+        with torch.no_grad():
+            outputs = model(**inputs, interpolate_pos_encoding=True)
+
+        num_queries = int((inputs.pixel_values.shape[-1] // model.config.vision_config.patch_size) ** 2)
+        self.assertEqual(outputs.pred_boxes.shape, torch.Size((1, num_queries, 4)))
+
+        expected_slice_boxes = torch.tensor(
+            [[0.0680, 0.0422, 0.1347], [0.2071, 0.0450, 0.4146], [0.2000, 0.0418, 0.3476]]
+        ).to(torch_device)
+        torch.testing.assert_close(outputs.pred_boxes[0, :3, :3], expected_slice_boxes, rtol=1e-4, atol=1e-4)
+
+        model = OwlViTForObjectDetection.from_pretrained(model_name).to(torch_device)
+        query_image = prepare_img()
+        inputs = processor(
+            images=image,
+            query_images=query_image,
+            max_length=16,
+            padding="max_length",
+            return_tensors="pt",
+        ).to(torch_device)
+
+        with torch.no_grad():
+            outputs = model.image_guided_detection(**inputs, interpolate_pos_encoding=True)
+
+        # No need to check the logits, we just check inference runs fine.
+        num_queries = int((inputs.pixel_values.shape[-1] / model.config.vision_config.patch_size) ** 2)
+        self.assertEqual(outputs.target_pred_boxes.shape, torch.Size((1, num_queries, 4)))
+
+        # Deactivate interpolate_pos_encoding on same model, and use default image size.
+        # Verify the dynamic change caused by the activation/deactivation of interpolate_pos_encoding of variables: (self.sqrt_num_patch_h, self.sqrt_num_patch_w), self.box_bias from (OwlViTForObjectDetection).
+        processor = OwlViTProcessor.from_pretrained(model_name)
+
+        image = prepare_img()
+        inputs = processor(
+            text=[["a photo of a cat", "a photo of a dog"]],
+            images=image,
+            max_length=16,
+            padding="max_length",
+            return_tensors="pt",
+        ).to(torch_device)
+
+        with torch.no_grad():
+            outputs = model(**inputs, interpolate_pos_encoding=False)
+
+        num_queries = int((inputs.pixel_values.shape[-1] // model.config.vision_config.patch_size) ** 2)
+        self.assertEqual(outputs.pred_boxes.shape, torch.Size((1, num_queries, 4)))
+
+        expected_default_box_bias = torch.tensor(
+            [
+                [-3.1332, -3.1332, -3.1332, -3.1332],
+                [-2.3968, -3.1332, -3.1332, -3.1332],
+                [-1.9452, -3.1332, -3.1332, -3.1332],
+            ]
+        )
+        torch.testing.assert_close(model.box_bias[:3, :4], expected_default_box_bias, rtol=1e-4, atol=1e-4)
+
+        # Interpolate with any resolution size.
+        processor.image_processor.size = {"height": 1264, "width": 1024}
+
+        image = prepare_img()
+        inputs = processor(
+            text=[["a photo of a cat", "a photo of a dog"]],
+            images=image,
+            max_length=16,
+            padding="max_length",
+            return_tensors="pt",
+        ).to(torch_device)
+
+        with torch.no_grad():
+            outputs = model(**inputs, interpolate_pos_encoding=True)
+
+        num_queries = int(
+            (inputs.pixel_values.shape[-2] // model.config.vision_config.patch_size)
+            * (inputs.pixel_values.shape[-1] // model.config.vision_config.patch_size)
+        )
+        self.assertEqual(outputs.pred_boxes.shape, torch.Size((1, num_queries, 4)))
+        expected_slice_boxes = torch.tensor(
+            [[0.0499, 0.0301, 0.0983], [0.2244, 0.0365, 0.4663], [0.1387, 0.0314, 0.1859]]
+        ).to(torch_device)
+        torch.testing.assert_close(outputs.pred_boxes[0, :3, :3], expected_slice_boxes, rtol=1e-4, atol=1e-4)
+
+        query_image = prepare_img()
+        inputs = processor(
+            images=image,
+            query_images=query_image,
+            max_length=16,
+            padding="max_length",
+            return_tensors="pt",
+        ).to(torch_device)
+
+        with torch.no_grad():
+            outputs = model.image_guided_detection(**inputs, interpolate_pos_encoding=True)
+
+        # No need to check the logits, we just check inference runs fine.
+        num_queries = int(
+            (inputs.pixel_values.shape[-2] // model.config.vision_config.patch_size)
+            * (inputs.pixel_values.shape[-1] // model.config.vision_config.patch_size)
+        )
+        self.assertEqual(outputs.target_pred_boxes.shape, torch.Size((1, num_queries, 4)))
 
     @slow
     def test_inference_object_detection(self):
@@ -824,8 +967,9 @@ class OwlViTModelIntegrationTest(unittest.TestCase):
         processor = OwlViTProcessor.from_pretrained(model_name)
 
         image = prepare_img()
+        text_labels = [["a photo of a cat", "a photo of a dog"]]
         inputs = processor(
-            text=[["a photo of a cat", "a photo of a dog"]],
+            text=text_labels,
             images=image,
             max_length=16,
             padding="max_length",
@@ -841,7 +985,22 @@ class OwlViTModelIntegrationTest(unittest.TestCase):
         expected_slice_boxes = torch.tensor(
             [[0.0691, 0.0445, 0.1373], [0.1592, 0.0456, 0.3192], [0.1632, 0.0423, 0.2478]]
         ).to(torch_device)
-        self.assertTrue(torch.allclose(outputs.pred_boxes[0, :3, :3], expected_slice_boxes, atol=1e-4))
+        torch.testing.assert_close(outputs.pred_boxes[0, :3, :3], expected_slice_boxes, rtol=1e-4, atol=1e-4)
+
+        # test post-processing
+        post_processed_output = processor.post_process_grounded_object_detection(outputs)
+        self.assertIsNone(post_processed_output[0]["text_labels"])
+
+        post_processed_output_with_text_labels = processor.post_process_grounded_object_detection(
+            outputs, text_labels=text_labels
+        )
+
+        objects_labels = post_processed_output_with_text_labels[0]["labels"].cpu().tolist()
+        self.assertListEqual(objects_labels, [0, 0])
+
+        objects_text_labels = post_processed_output_with_text_labels[0]["text_labels"]
+        self.assertIsNotNone(objects_text_labels)
+        self.assertListEqual(objects_text_labels, ["a photo of a cat", "a photo of a cat"])
 
     @slow
     def test_inference_one_shot_object_detection(self):
@@ -869,7 +1028,7 @@ class OwlViTModelIntegrationTest(unittest.TestCase):
         expected_slice_boxes = torch.tensor(
             [[0.0691, 0.0445, 0.1373], [0.1592, 0.0456, 0.3192], [0.1632, 0.0423, 0.2478]]
         ).to(torch_device)
-        self.assertTrue(torch.allclose(outputs.target_pred_boxes[0, :3, :3], expected_slice_boxes, atol=1e-4))
+        torch.testing.assert_close(outputs.target_pred_boxes[0, :3, :3], expected_slice_boxes, rtol=1e-4, atol=1e-4)
 
     @slow
     @require_torch_accelerator

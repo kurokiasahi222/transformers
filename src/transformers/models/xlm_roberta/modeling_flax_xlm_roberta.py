@@ -51,12 +51,6 @@ _CONFIG_FOR_DOC = "XLMRobertaConfig"
 
 remat = nn_partitioning.remat
 
-FLAX_XLM_ROBERTA_PRETRAINED_MODEL_ARCHIVE_LIST = [
-    "FacebookAI/xlm-roberta-base",
-    "FacebookAI/xlm-roberta-large",
-    # See all XLM-RoBERTa models at https://huggingface.co/models?filter=xlm-roberta
-]
-
 
 # Copied from transformers.models.roberta.modeling_flax_roberta.create_position_ids_from_input_ids
 def create_position_ids_from_input_ids(input_ids, padding_idx):
@@ -1503,3 +1497,15 @@ append_call_sample_docstring(
     FlaxCausalLMOutputWithCrossAttentions,
     _CONFIG_FOR_DOC,
 )
+
+
+__all__ = [
+    "FlaxXLMRobertaForMaskedLM",
+    "FlaxXLMRobertaForCausalLM",
+    "FlaxXLMRobertaForMultipleChoice",
+    "FlaxXLMRobertaForQuestionAnswering",
+    "FlaxXLMRobertaForSequenceClassification",
+    "FlaxXLMRobertaForTokenClassification",
+    "FlaxXLMRobertaModel",
+    "FlaxXLMRobertaPreTrainedModel",
+]

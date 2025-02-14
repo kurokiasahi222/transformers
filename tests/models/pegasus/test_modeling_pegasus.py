@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" Testing suite for the PyTorch PEGASUS model. """
+"""Testing suite for the PyTorch PEGASUS model."""
 
 import tempfile
 import unittest
@@ -112,12 +112,6 @@ class PegasusModelTester:
         self.pad_token_id = pad_token_id
         self.bos_token_id = bos_token_id
 
-        # forcing a certain token to be generated, sets all other tokens to -inf
-        # if however the token to be generated is already at -inf then it can lead token
-        # `nan` values and thus break generation
-        self.forced_bos_token_id = None
-        self.forced_eos_token_id = None
-
     def prepare_config_and_inputs(self):
         input_ids = ids_tensor([self.batch_size, self.seq_length], self.vocab_size)
         input_ids = ids_tensor([self.batch_size, self.seq_length], self.vocab_size).clamp(
@@ -165,8 +159,6 @@ class PegasusModelTester:
             eos_token_id=self.eos_token_id,
             bos_token_id=self.bos_token_id,
             pad_token_id=self.pad_token_id,
-            forced_bos_token_id=self.forced_bos_token_id,
-            forced_eos_token_id=self.forced_eos_token_id,
         )
 
     def prepare_config_and_inputs_for_common(self):
@@ -243,10 +235,8 @@ class PegasusModelTester:
 @require_torch
 class PegasusModelTest(ModelTesterMixin, GenerationTesterMixin, PipelineTesterMixin, unittest.TestCase):
     all_model_classes = (PegasusModel, PegasusForConditionalGeneration) if is_torch_available() else ()
-    all_generative_model_classes = (PegasusForConditionalGeneration,) if is_torch_available() else ()
     pipeline_model_mapping = (
         {
-            "conversational": PegasusForConditionalGeneration,
             "feature-extraction": PegasusModel,
             "summarization": PegasusForConditionalGeneration,
             "text-generation": PegasusForCausalLM,
@@ -571,7 +561,6 @@ class PegasusStandaloneDecoderModelTester:
 @require_torch
 class PegasusStandaloneDecoderModelTest(ModelTesterMixin, GenerationTesterMixin, unittest.TestCase):
     all_model_classes = (PegasusDecoder, PegasusForCausalLM) if is_torch_available() else ()
-    all_generative_model_classes = (PegasusForCausalLM,) if is_torch_available() else ()
     test_resize_position_embeddings = True
     test_pruning = False
     is_encoder_decoder = False
@@ -593,6 +582,6 @@ class PegasusStandaloneDecoderModelTest(ModelTesterMixin, GenerationTesterMixin,
         config_and_inputs = self.model_tester.prepare_config_and_inputs()
         self.model_tester.create_and_check_decoder_model_attention_mask_past(*config_and_inputs)
 
+    @unittest.skip(reason="Decoder cannot keep gradients")
     def test_retain_grad_hidden_states_attentions(self):
-        # decoder cannot keep gradients
         return

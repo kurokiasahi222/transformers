@@ -15,6 +15,7 @@
 """
 Processor class for LayoutXLM.
 """
+
 import warnings
 from typing import List, Optional, Union
 
@@ -198,3 +199,6 @@ class LayoutXLMProcessor(ProcessorMixin):
             FutureWarning,
         )
         return self.image_processor
+
+
+__all__ = ["LayoutXLMProcessor"]

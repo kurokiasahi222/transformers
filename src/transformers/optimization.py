@@ -273,7 +273,7 @@ def get_polynomial_decay_schedule_with_warmup(
 
     lr_init = optimizer.defaults["lr"]
     if not (lr_init > lr_end):
-        raise ValueError(f"lr_end ({lr_end}) must be be smaller than initial lr ({lr_init})")
+        raise ValueError(f"lr_end ({lr_end}) must be smaller than initial lr ({lr_init})")
 
     lr_lambda = partial(
         _get_polynomial_decay_schedule_with_warmup_lr_lambda,
@@ -324,6 +324,180 @@ def get_inverse_sqrt_schedule(
     return LambdaLR(optimizer, lr_lambda, last_epoch=last_epoch)
 
 
+def _get_cosine_schedule_with_warmup_lr_lambda(
+    current_step: int, *, num_warmup_steps: int, num_training_steps: int, num_cycles: float, min_lr_rate: float = 0.0
+):
+    if current_step < num_warmup_steps:
+        return float(current_step) / float(max(1, num_warmup_steps))
+    progress = float(current_step - num_warmup_steps) / float(max(1, num_training_steps - num_warmup_steps))
+    factor = 0.5 * (1.0 + math.cos(math.pi * float(num_cycles) * 2.0 * progress))
+    factor = factor * (1 - min_lr_rate) + min_lr_rate
+    return max(0, factor)
+
+
+def get_cosine_with_min_lr_schedule_with_warmup(
+    optimizer: Optimizer,
+    num_warmup_steps: int,
+    num_training_steps: int,
+    num_cycles: float = 0.5,
+    last_epoch: int = -1,
+    min_lr: float = None,
+    min_lr_rate: float = None,
+):
+    """
+    Create a schedule with a learning rate that decreases following the values of the cosine function between the
+    initial lr set in the optimizer to min_lr, after a warmup period during which it increases linearly between 0 and the
+    initial lr set in the optimizer.
+
+    Args:
+        optimizer ([`~torch.optim.Optimizer`]):
+            The optimizer for which to schedule the learning rate.
+        num_warmup_steps (`int`):
+            The number of steps for the warmup phase.
+        num_training_steps (`int`):
+            The total number of training steps.
+        num_cycles (`float`, *optional*, defaults to 0.5):
+            The number of waves in the cosine schedule (the defaults is to just decrease from the max value to 0
+            following a half-cosine).
+        last_epoch (`int`, *optional*, defaults to -1):
+            The index of the last epoch when resuming training.
+        min_lr (`float`, *optional*):
+            The minimum learning rate to reach after the cosine schedule.
+        min_lr_rate (`float`, *optional*):
+            The minimum learning rate as a ratio of the initial learning rate. If set, `min_lr` should not be set.
+
+    Return:
+        `torch.optim.lr_scheduler.LambdaLR` with the appropriate schedule.
+    """
+
+    if min_lr is not None and min_lr_rate is not None:
+        raise ValueError("Only one of min_lr or min_lr_rate should be set")
+    elif min_lr is not None:
+        min_lr_rate = min_lr / optimizer.defaults["lr"]
+    elif min_lr_rate is None:
+        raise ValueError("One of min_lr or min_lr_rate should be set through the `lr_scheduler_kwargs`")
+
+    lr_lambda = partial(
+        _get_cosine_schedule_with_warmup_lr_lambda,
+        num_warmup_steps=num_warmup_steps,
+        num_training_steps=num_training_steps,
+        num_cycles=num_cycles,
+        min_lr_rate=min_lr_rate,
+    )
+    return LambdaLR(optimizer, lr_lambda, last_epoch)
+
+
+def _get_wsd_scheduler_lambda(
+    current_step: int,
+    *,
+    num_warmup_steps: int,
+    num_stable_steps: int,
+    num_decay_steps: int,
+    warmup_type: str,
+    decay_type: str,
+    min_lr_ratio: float,
+    num_cycles: float,
+):
+    if current_step < num_warmup_steps:
+        progress = float(current_step) / float(max(1, num_warmup_steps))
+        if warmup_type == "linear":
+            factor = progress
+        elif warmup_type == "cosine":
+            factor = 0.5 * (1.0 - math.cos(math.pi * progress))
+        elif warmup_type == "1-sqrt":
+            factor = 1.0 - math.sqrt(1.0 - progress)
+        factor = factor * (1.0 - min_lr_ratio) + min_lr_ratio
+        return max(0.0, factor)
+
+    if current_step < num_warmup_steps + num_stable_steps:
+        return 1.0
+
+    if current_step < num_warmup_steps + num_stable_steps + num_decay_steps:
+        progress = float(current_step - num_warmup_steps - num_stable_steps) / float(max(1, num_decay_steps))
+        if decay_type == "linear":
+            factor = 1.0 - progress
+        elif decay_type == "cosine":
+            factor = 0.5 * (1.0 + math.cos(math.pi * float(num_cycles) * 2.0 * progress))
+        elif decay_type == "1-sqrt":
+            factor = 1.0 - math.sqrt(progress)
+        factor = factor * (1.0 - min_lr_ratio) + min_lr_ratio
+        return max(0.0, factor)
+    return min_lr_ratio
+
+
+def get_wsd_schedule(
+    optimizer: Optimizer,
+    num_warmup_steps: int,
+    num_decay_steps: int,
+    num_training_steps: Optional[int] = None,
+    num_stable_steps: Optional[int] = None,
+    warmup_type: str = "linear",
+    decay_type: str = "cosine",
+    min_lr_ratio: float = 0,
+    num_cycles: float = 0.5,
+    last_epoch: int = -1,
+):
+    """
+    Create a schedule with a learning rate that has three stages:
+    1. warmup: increase from min_lr_ratio times the initial learning rate to the initial learning rate following a warmup_type.
+    2. stable: constant learning rate.
+    3. decay: decrease from the initial learning rate to min_lr_ratio times the initial learning rate following a decay_type.
+
+    Args:
+        optimizer ([`~torch.optim.Optimizer`]):
+            The optimizer for which to schedule the learning rate.
+        num_warmup_steps (`int`):
+            The number of steps for the warmup phase.
+        num_decay_steps (`int`):
+            The number of steps for the decay phase.
+        num_training_steps (`int`, *optional*):
+            The total number of training steps. This is the sum of the warmup, stable and decay steps. If `num_stable_steps` is not provided, the stable phase will be `num_training_steps - num_warmup_steps - num_decay_steps`.
+        num_stable_steps (`int`, *optional*):
+            The number of steps for the stable phase. Please ensure that `num_warmup_steps + num_stable_steps + num_decay_steps` equals `num_training_steps`, otherwise the other steps will default to the minimum learning rate.
+        warmup_type (`str`, *optional*, defaults to "linear"):
+            The type of warmup to use. Can be 'linear', 'cosine' or '1-sqrt'.
+        decay_type (`str`, *optional*, defaults to "cosine"):
+            The type of decay to use. Can be 'linear', 'cosine' or '1-sqrt'.
+        min_lr_ratio (`float`, *optional*, defaults to 0):
+            The minimum learning rate as a ratio of the initial learning rate.
+        num_cycles (`float`, *optional*, defaults to 0.5):
+            The number of waves in the cosine schedule (the defaults is to just decrease from the max value to 0
+            following a half-cosine).
+        last_epoch (`int`, *optional*, defaults to -1):
+            The index of the last epoch when resuming training.
+
+    Return:
+        `torch.optim.lr_scheduler.LambdaLR` with the appropriate schedule.
+    """
+
+    if num_training_steps is None and num_stable_steps is None:
+        raise ValueError("Either num_training_steps or num_stable_steps must be specified.")
+
+    if num_training_steps is not None and num_stable_steps is not None:
+        warnings.warn("Both num_training_steps and num_stable_steps are specified. num_stable_steps will be used.")
+
+    if warmup_type not in ["linear", "cosine", "1-sqrt"]:
+        raise ValueError(f"Unknown warmup type: {warmup_type}, expected 'linear', 'cosine' or '1-sqrt'")
+
+    if decay_type not in ["linear", "cosine", "1-sqrt"]:
+        raise ValueError(f"Unknown decay type: {decay_type}, expected 'linear', 'cosine' or '1-sqrt'")
+
+    if num_stable_steps is None:
+        num_stable_steps = num_training_steps - num_warmup_steps - num_decay_steps
+
+    lr_lambda = partial(
+        _get_wsd_scheduler_lambda,
+        num_warmup_steps=num_warmup_steps,
+        num_stable_steps=num_stable_steps,
+        num_decay_steps=num_decay_steps,
+        warmup_type=warmup_type,
+        decay_type=decay_type,
+        min_lr_ratio=min_lr_ratio,
+        num_cycles=num_cycles,
+    )
+    return LambdaLR(optimizer, lr_lambda, last_epoch)
+
+
 TYPE_TO_SCHEDULER_FUNCTION = {
     SchedulerType.LINEAR: get_linear_schedule_with_warmup,
     SchedulerType.COSINE: get_cosine_schedule_with_warmup,
@@ -333,6 +507,8 @@ TYPE_TO_SCHEDULER_FUNCTION = {
     SchedulerType.CONSTANT_WITH_WARMUP: get_constant_schedule_with_warmup,
     SchedulerType.INVERSE_SQRT: get_inverse_sqrt_schedule,
     SchedulerType.REDUCE_ON_PLATEAU: get_reduce_on_plateau_schedule,
+    SchedulerType.COSINE_WITH_MIN_LR: get_cosine_with_min_lr_schedule_with_warmup,
+    SchedulerType.WARMUP_STABLE_DECAY: get_wsd_schedule,
 }
 
 
@@ -380,15 +556,14 @@ def get_scheduler(
 
         def scheduler_hook(param):
             # Since the optimizer hook has been already attached we only need to
-            # attach the scheduler hook
-            if param.grad is not None:
-                scheduler_dict[param].step()
+            # attach the scheduler hook, the gradients have been zeroed here
+            scheduler_dict[param].step()
 
         for param in optimizer_dict.keys():
             if param.requires_grad:
                 param.register_post_accumulate_grad_hook(scheduler_hook)
 
-        return LayerWiseDummyScheduler()
+        return LayerWiseDummyScheduler(optimizer_dict=optimizer_dict, lr=optimizer.defaults["lr"])
 
     if name == SchedulerType.CONSTANT:
         return schedule_func(optimizer)
@@ -408,6 +583,14 @@ def get_scheduler(
 
     if name == SchedulerType.INVERSE_SQRT:
         return schedule_func(optimizer, num_warmup_steps=num_warmup_steps)
+
+    if name == SchedulerType.WARMUP_STABLE_DECAY:
+        return schedule_func(
+            optimizer,
+            num_warmup_steps=num_warmup_steps,
+            num_training_steps=num_training_steps,
+            **scheduler_specific_kwargs,
+        )
 
     # All other schedulers require `num_training_steps`
     if num_training_steps is None:

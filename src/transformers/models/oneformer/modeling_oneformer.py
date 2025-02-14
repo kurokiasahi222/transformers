@@ -12,12 +12,13 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" PyTorch OneFormer model."""
+"""PyTorch OneFormer model."""
+
 import copy
 import math
 import warnings
 from dataclasses import dataclass
-from typing import Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple, Union
 
 import numpy as np
 import torch
@@ -51,11 +52,6 @@ logger = logging.get_logger(__name__)
 _CONFIG_FOR_DOC = "OneFormerConfig"
 _CHECKPOINT_FOR_DOC = "shi-labs/oneformer_ade20k_swin_tiny"
 
-ONEFORMER_PRETRAINED_MODEL_ARCHIVE_LIST = [
-    "shi-labs/oneformer_ade20k_swin_tiny",
-    # See all OneFormer models at https://huggingface.co/models?filter=oneformer
-]
-
 
 if is_scipy_available():
     from scipy.optimize import linear_sum_assignment
@@ -67,11 +63,14 @@ def _get_clones(module, N):
 
 # Copied from transformers.models.deformable_detr.modeling_deformable_detr.multi_scale_deformable_attention
 def multi_scale_deformable_attention(
-    value: Tensor, value_spatial_shapes: Tensor, sampling_locations: Tensor, attention_weights: Tensor
+    value: Tensor,
+    value_spatial_shapes: Union[Tensor, List[Tuple]],
+    sampling_locations: Tensor,
+    attention_weights: Tensor,
 ) -> Tensor:
     batch_size, _, num_heads, hidden_dim = value.shape
     _, num_queries, num_heads, num_levels, num_points, _ = sampling_locations.shape
-    value_list = value.split([height.item() * width.item() for height, width in value_spatial_shapes], dim=1)
+    value_list = value.split([height * width for height, width in value_spatial_shapes], dim=1)
     sampling_grids = 2 * sampling_locations - 1
     sampling_value_list = []
     for level_id, (height, width) in enumerate(value_spatial_shapes):
@@ -3162,7 +3161,7 @@ class OneFormerForUniversalSegmentation(OneFormerPreTrainedModel):
 
         >>> # you can pass them to processor for semantic postprocessing
         >>> predicted_semantic_map = processor.post_process_semantic_segmentation(
-        ...     outputs, target_sizes=[image.size[::-1]]
+        ...     outputs, target_sizes=[(image.height, image.width)]
         ... )[0]
         >>> f"👉 Semantic Predictions Shape: {list(predicted_semantic_map.shape)}"
         '👉 Semantic Predictions Shape: [512, 683]'
@@ -3179,7 +3178,7 @@ class OneFormerForUniversalSegmentation(OneFormerPreTrainedModel):
 
         >>> # you can pass them to processor for instance postprocessing
         >>> predicted_instance_map = processor.post_process_instance_segmentation(
-        ...     outputs, target_sizes=[image.size[::-1]]
+        ...     outputs, target_sizes=[(image.height, image.width)]
         ... )[0]["segmentation"]
         >>> f"👉 Instance Predictions Shape: {list(predicted_instance_map.shape)}"
         '👉 Instance Predictions Shape: [512, 683]'
@@ -3196,7 +3195,7 @@ class OneFormerForUniversalSegmentation(OneFormerPreTrainedModel):
 
         >>> # you can pass them to processor for panoptic postprocessing
         >>> predicted_panoptic_map = processor.post_process_panoptic_segmentation(
-        ...     outputs, target_sizes=[image.size[::-1]]
+        ...     outputs, target_sizes=[(image.height, image.width)]
         ... )[0]["segmentation"]
         >>> f"👉 Panoptic Predictions Shape: {list(predicted_panoptic_map.shape)}"
         '👉 Panoptic Predictions Shape: [512, 683]'
@@ -3259,3 +3258,6 @@ class OneFormerForUniversalSegmentation(OneFormerPreTrainedModel):
             if loss is not None:
                 output = (loss) + output
         return output
+
+
+__all__ = ["OneFormerForUniversalSegmentation", "OneFormerModel", "OneFormerPreTrainedModel"]

@@ -12,7 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" Testing suite for the PyTorch BioGPT model. """
+"""Testing suite for the PyTorch BioGPT model."""
 
 import math
 import unittest
@@ -36,7 +36,6 @@ if is_torch_available():
         BioGptModel,
         BioGptTokenizer,
     )
-    from transformers.models.biogpt.modeling_biogpt import BIOGPT_PRETRAINED_MODEL_ARCHIVE_LIST
 
 
 class BioGptModelTester:
@@ -285,7 +284,6 @@ class BioGptModelTest(ModelTesterMixin, GenerationTesterMixin, PipelineTesterMix
         if is_torch_available()
         else ()
     )
-    all_generative_model_classes = (BioGptForCausalLM,) if is_torch_available() else ()
     pipeline_model_mapping = (
         {
             "feature-extraction": BioGptModel,
@@ -382,9 +380,9 @@ class BioGptModelTest(ModelTesterMixin, GenerationTesterMixin, PipelineTesterMix
 
     @slow
     def test_model_from_pretrained(self):
-        for model_name in BIOGPT_PRETRAINED_MODEL_ARCHIVE_LIST[:1]:
-            model = BioGptModel.from_pretrained(model_name)
-            self.assertIsNotNone(model)
+        model_name = "microsoft/biogpt"
+        model = BioGptModel.from_pretrained(model_name)
+        self.assertIsNotNone(model)
 
     # Copied from tests.models.opt.test_modeling_opt.OPTModelTest.test_opt_sequence_classification_model with OPT->BioGpt,opt->biogpt,prepare_config_and_inputs->prepare_config_and_inputs_for_common
     def test_biogpt_sequence_classification_model(self):
@@ -433,7 +431,7 @@ class BioGptModelIntegrationTest(unittest.TestCase):
             [[[-9.5236, -9.8918, 10.4557], [-11.0469, -9.6423, 8.1022], [-8.8664, -7.8826, 5.5325]]]
         )
 
-        self.assertTrue(torch.allclose(output[:, :3, :3], expected_slice, atol=1e-4))
+        torch.testing.assert_close(output[:, :3, :3], expected_slice, rtol=1e-4, atol=1e-4)
 
     @slow
     def test_biogpt_generation(self):

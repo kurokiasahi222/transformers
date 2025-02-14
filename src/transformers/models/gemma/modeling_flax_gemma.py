@@ -13,6 +13,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 """Flax Gemma model."""
+
 from typing import Optional, Tuple
 
 import flax.linen as nn
@@ -771,3 +772,6 @@ append_call_sample_docstring(
     _CONFIG_FOR_DOC,
     real_checkpoint=_REAL_CHECKPOINT_FOR_DOC,
 )
+
+
+__all__ = ["FlaxGemmaForCausalLM", "FlaxGemmaModel", "FlaxGemmaPreTrainedModel"]

@@ -61,10 +61,17 @@ The original code can be found [here](https://github.com/salesforce/BLIP).
 [[autodoc]] BlipImageProcessor
     - preprocess
 
+## BlipImageProcessorFast
+
+[[autodoc]] BlipImageProcessorFast
+    - preprocess
+
 <frameworkcontent>
 <pt>
 
 ## BlipModel
+
+`BlipModel` is going to be deprecated in future versions, please use `BlipForConditionalGeneration`, `BlipForImageTextRetrieval` or `BlipForQuestionAnswering` depending on your usecase.
 
 [[autodoc]] BlipModel
     - forward

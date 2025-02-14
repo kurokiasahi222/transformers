@@ -12,8 +12,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" Flax LongT5 model."""
-
+"""Flax LongT5 model."""
 
 import copy
 from typing import Any, Callable, List, Optional, Tuple
@@ -2445,3 +2444,6 @@ overwrite_call_docstring(
 append_replace_return_docstrings(
     FlaxLongT5ForConditionalGeneration, output_type=FlaxSeq2SeqLMOutput, config_class=_CONFIG_FOR_DOC
 )
+
+
+__all__ = ["FlaxLongT5ForConditionalGeneration", "FlaxLongT5Model", "FlaxLongT5PreTrainedModel"]

@@ -13,8 +13,7 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
-""" PyTorch - TF 2.0 general utilities."""
-
+"""PyTorch - TF 2.0 general utilities."""
 
 import os
 import re
@@ -181,8 +180,6 @@ def load_pytorch_checkpoint_in_tf2_model(
         import tensorflow as tf  # noqa: F401
         import torch  # noqa: F401
         from safetensors.torch import load_file as safe_load_file  # noqa: F401
-
-        from .pytorch_utils import is_torch_greater_or_equal_than_1_13  # noqa: F401
     except ImportError:
         logger.error(
             "Loading a PyTorch model in TensorFlow, requires both PyTorch and TensorFlow to be installed. Please see "
@@ -202,7 +199,7 @@ def load_pytorch_checkpoint_in_tf2_model(
         if pt_path.endswith(".safetensors"):
             state_dict = safe_load_file(pt_path)
         else:
-            weights_only_kwarg = {"weights_only": True} if is_torch_greater_or_equal_than_1_13 else {}
+            weights_only_kwarg = {"weights_only": True}
             state_dict = torch.load(pt_path, map_location="cpu", **weights_only_kwarg)
 
         pt_state_dict.update(state_dict)
@@ -249,7 +246,10 @@ def load_pytorch_weights_in_tf2_model(
         )
         raise
 
-    pt_state_dict = {k: v.numpy() for k, v in pt_state_dict.items()}
+    # Numpy doesn't understand bfloat16, so upcast to a dtype that doesn't lose precision
+    pt_state_dict = {
+        k: v.numpy() if v.dtype != torch.bfloat16 else v.float().numpy() for k, v in pt_state_dict.items()
+    }
     return load_pytorch_state_dict_in_tf2_model(
         tf_model,
         pt_state_dict,
